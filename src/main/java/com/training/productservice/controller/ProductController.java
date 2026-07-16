@@ -62,12 +62,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.updatePrice(id, dto));
     }
 
-//    @PatchMapping("/{id}/stock")
-//    public ResponseEntity<ProductResponseDto> updateStock(@PathVariable UUID id,
-//                                                            @Valid @RequestBody StockUpdateRequestDto dto) {
-//        return ResponseEntity.ok(productService.updateStock(id, dto));
-//    }
-
     @GetMapping("/{id}/availability")
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(@PathVariable UUID id,
                                                                        @RequestParam @Min(1) Integer quantity) {
@@ -87,20 +81,20 @@ public class ProductController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<ProductResponseDto> updateProductInfo(@PathVariable UUID id, @Valid @RequestBody ProductRequestDto product){
-        ProductResponseDto updatedProduct = productService.updateProductInfo(id,product);
-
+    public ResponseEntity<ProductResponseDto> updateProductInfo(@PathVariable UUID id,
+                                                                  @Valid @RequestBody ProductRequestDto product) {
+        ProductResponseDto updatedProduct = productService.updateProductInfo(id, product);
         return ResponseEntity.status(HttpStatus.OK)
-                             .header("update","resource updated successfully...")
-                             .body(updatedProduct);
+                .header("X-Update", "resource updated successfully")
+                .body(updatedProduct);
     }
 
     @PatchMapping("/adjust/stock/{id}")
-    public ResponseEntity<ProductResponseDto> adjustStock(@PathVariable UUID id,@Valid @RequestBody @Min(1) StockUpdateRequestDto stockUpdateRequestDto) {
+    public ResponseEntity<ProductResponseDto> adjustStock(@PathVariable UUID id,
+                                                             @Valid @RequestBody StockUpdateRequestDto stockUpdateRequestDto) {
         ProductResponseDto updatedStock = productService.adjustStock(id, stockUpdateRequestDto);
-
         return ResponseEntity.status(HttpStatus.OK)
-                             .header("stock update","stock value updated--> "+stockUpdateRequestDto.getOperation())
-                             .body(updatedStock);
+                .header("X-Stock-Update", "stock value updated--> " + stockUpdateRequestDto.getOperation())
+                .body(updatedStock);
     }
 }
