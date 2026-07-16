@@ -219,7 +219,7 @@ com.training.productservice
 
 | Class | Responsibility |
 |---|---|
-| `ProductRepository` (interface extending `JpaRepository<Product, Long>`) | Provides CRUD persistence operations for `Product` entities and declarative query methods (e.g., `findByCategory`, `existsByProductNameIgnoreCase`) via Spring Data JPA method-name derivation. |
+| `ProductRepository` (interface extending `JpaRepository<Product, UUID>`) | Provides CRUD persistence operations for `Product` entities and declarative query methods (e.g., `findByCategory`, `existsByProductNameIgnoreCase`) via Spring Data JPA method-name derivation. |
 
 ### 7.4 `entity` package
 
@@ -268,7 +268,7 @@ com.training.productservice
 
 | Field | Type | Constraints |
 |---|---|---|
-| `id` | `Long` | Primary Key, auto-generated (identity/sequence) |
+| `id` | `UUID` | Primary Key, auto-generated (`@GeneratedValue` with a UUID generation strategy, e.g. `@UuidGenerator` / `GenerationType.UUID`) |
 | `productName` | `String` | Not null, max length 150 |
 | `description` | `String` | Nullable, max length 1000 |
 | `category` | `String` | Not null, max length 100 |
@@ -282,6 +282,7 @@ com.training.productservice
 **Table**: `products`
 
 **Rationale for design choices:**
+- `UUID` is used for `id` rather than a numeric (`Long`/auto-increment) surrogate key so that identifiers are globally unique and non-sequential/non-guessable across services, safe to generate client-side or in a distributed setting without coordinating with the database, and free of the information leakage (e.g., inferring catalog size or creation order) that sequential IDs expose through a public API.
 - `BigDecimal` is used for `price` rather than `double`/`float` to avoid floating-point rounding errors in monetary calculations.
 - `active` (soft delete flag) is used instead of physical deletion, since historical orders may still reference a product that has since been discontinued.
 - `@Version` (optimistic locking) protects `stockQuantity` from lost updates when multiple concurrent requests (e.g., simultaneous checkouts) attempt to reduce stock at the same time.
@@ -297,10 +298,10 @@ Logically, the `Product` entity has an **implicit, API-level relationship** to e
 
 | Method | Purpose |
 |---|---|
-| `findById(Long id)` | Inherited from `JpaRepository`; retrieves a single product. |
+| `findById(UUID id)` | Inherited from `JpaRepository`; retrieves a single product. |
 | `findAll()` | Inherited from `JpaRepository`; retrieves all products (to be replaced with `findAll(Pageable)` once pagination is introduced). |
 | `save(Product product)` | Inherited from `JpaRepository`; persists a new or updated product. |
-| `deleteById(Long id)` | Inherited from `JpaRepository`; used only if physical deletion is ever required (soft delete via `active` flag is preferred). |
+| `deleteById(UUID id)` | Inherited from `JpaRepository`; used only if physical deletion is ever required (soft delete via `active` flag is preferred). |
 | `findByCategory(String category)` | Derived query method; supports catalog browsing by category. |
 | `existsByProductNameIgnoreCaseAndCategoryIgnoreCase(String name, String category)` | Derived query method; supports duplicate-detection business rule during creation. |
 | `findByActiveTrue()` | Derived query method; supports returning only active (non-discontinued) products for standard catalog listing. |
@@ -335,7 +336,7 @@ Logically, the `Product` entity has an **implicit, API-level relationship** to e
 **Response Body:**
 ```json
 {
-  "id": 101,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "productName": "Wireless Mouse",
   "description": "Ergonomic 2.4GHz wireless mouse",
   "category": "Electronics",
@@ -362,7 +363,7 @@ Logically, the `Product` entity has an **implicit, API-level relationship** to e
 | **Response Body** | `ProductResponseDto` |
 | **Success Status** | `200 OK` |
 
-**Validation Rules:** `id` must be a valid positive `Long` path variable.
+**Validation Rules:** `id` must be a valid `UUID`-formatted path variable.
 
 **Error Responses:** `404 Not Found` (`ProductNotFoundException` if no product with the given ID exists).
 
@@ -452,11 +453,11 @@ Logically, the `Product` entity has an **implicit, API-level relationship** to e
 | **Response Body** | `AvailabilityResponseDto` |
 | **Success Status** | `200 OK` |
 
-**Example:** `GET /api/v1/products/101/availability?quantity=5`
+**Example:** `GET /api/v1/products/550e8400-e29b-41d4-a716-446655440000/availability?quantity=5`
 
 **Response Body:**
 ```json
-{ "productId": 101, "requestedQuantity": 5, "available": true, "currentStock": 150 }
+{ "productId": "550e8400-e29b-41d4-a716-446655440000", "requestedQuantity": 5, "available": true, "currentStock": 150 }
 ```
 
 **Validation Rules:** `quantity` query parameter not null, `@Min(1)`.
@@ -727,26 +728,26 @@ config ..> service : provides beans
 class ProductController {
   - productService : ProductService
   + createProduct(dto: ProductRequestDto) : ResponseEntity<ProductResponseDto>
-  + getProductById(id: Long) : ResponseEntity<ProductResponseDto>
+  + getProductById(id: UUID) : ResponseEntity<ProductResponseDto>
   + getAllProducts() : ResponseEntity<List<ProductResponseDto>>
-  + updateProduct(id: Long, dto: ProductRequestDto) : ResponseEntity<ProductResponseDto>
-  + updatePrice(id: Long, dto: PriceUpdateRequestDto) : ResponseEntity<ProductResponseDto>
-  + updateStock(id: Long, dto: StockUpdateRequestDto) : ResponseEntity<ProductResponseDto>
-  + checkAvailability(id: Long, quantity: Integer) : ResponseEntity<AvailabilityResponseDto>
-  + reduceStock(id: Long, dto: StockReductionRequestDto) : ResponseEntity<ProductResponseDto>
-  + deleteProduct(id: Long) : ResponseEntity<Void>
+  + updateProduct(id: UUID, dto: ProductRequestDto) : ResponseEntity<ProductResponseDto>
+  + updatePrice(id: UUID, dto: PriceUpdateRequestDto) : ResponseEntity<ProductResponseDto>
+  + updateStock(id: UUID, dto: StockUpdateRequestDto) : ResponseEntity<ProductResponseDto>
+  + checkAvailability(id: UUID, quantity: Integer) : ResponseEntity<AvailabilityResponseDto>
+  + reduceStock(id: UUID, dto: StockReductionRequestDto) : ResponseEntity<ProductResponseDto>
+  + deleteProduct(id: UUID) : ResponseEntity<Void>
 }
 
 interface ProductService {
   + createProduct(dto: ProductRequestDto) : ProductResponseDto
-  + getProductById(id: Long) : ProductResponseDto
+  + getProductById(id: UUID) : ProductResponseDto
   + getAllProducts() : List<ProductResponseDto>
-  + updateProduct(id: Long, dto: ProductRequestDto) : ProductResponseDto
-  + updatePrice(id: Long, dto: PriceUpdateRequestDto) : ProductResponseDto
-  + updateStock(id: Long, dto: StockUpdateRequestDto) : ProductResponseDto
-  + checkAvailability(id: Long, quantity: Integer) : AvailabilityResponseDto
-  + reduceStock(id: Long, quantity: Integer, orderReference: String) : ProductResponseDto
-  + deleteProduct(id: Long) : void
+  + updateProduct(id: UUID, dto: ProductRequestDto) : ProductResponseDto
+  + updatePrice(id: UUID, dto: PriceUpdateRequestDto) : ProductResponseDto
+  + updateStock(id: UUID, dto: StockUpdateRequestDto) : ProductResponseDto
+  + checkAvailability(id: UUID, quantity: Integer) : AvailabilityResponseDto
+  + reduceStock(id: UUID, quantity: Integer, orderReference: String) : ProductResponseDto
+  + deleteProduct(id: UUID) : void
 }
 
 class ProductServiceImpl {
@@ -762,7 +763,7 @@ interface ProductRepository {
 }
 
 class Product {
-  - id : Long
+  - id : UUID
   - productName : String
   - description : String
   - category : String
@@ -783,7 +784,7 @@ class ProductRequestDto {
 }
 
 class ProductResponseDto {
-  - id : Long
+  - id : UUID
   - productName : String
   - description : String
   - category : String
@@ -808,7 +809,7 @@ class StockReductionRequestDto {
 }
 
 class AvailabilityResponseDto {
-  - productId : Long
+  - productId : UUID
   - requestedQuantity : Integer
   - available : Boolean
   - currentStock : Integer
@@ -869,7 +870,7 @@ The Product Service's data model consists of a single owned entity. No foreign-k
 ```plantuml
 @startuml
 entity "products" as products {
-  * id : BIGINT <<PK>>
+  * id : UUID <<PK>>
   --
   * product_name : VARCHAR(150)
   description : VARCHAR(1000)
@@ -885,7 +886,7 @@ entity "products" as products {
 entity "orders (external service - referenced logically only)" as orders {
   * id : BIGINT <<PK>>
   --
-  * product_id : BIGINT <<logical reference, no FK>>
+  * product_id : UUID <<logical reference, no FK>>
   * quantity : INTEGER
   ...
 }
@@ -920,7 +921,7 @@ orders ..> products : "references via API call\n(no database foreign key —\nse
 |---|---|---|
 | **Controller-Service-Repository (Layered Architecture)** | `ProductController` → `ProductServiceImpl` → `ProductRepository` | Separates HTTP concerns, business rules, and persistence concerns into distinct, independently testable layers — a natural fit for a CRUD-plus-business-rules service like product/inventory management. |
 | **Dependency Injection** | Spring-managed beans injected via constructor injection (e.g., `ProductServiceImpl` receiving `ProductRepository` and `ProductMapper`) | Decouples classes from the responsibility of constructing their own collaborators, enabling easy substitution of implementations in unit tests (via Mockito mocks) and adherence to the Dependency Inversion Principle. |
-| **Repository Pattern** | `ProductRepository extends JpaRepository<Product, Long>` | Abstracts persistence/query logic behind an interface, allowing the service layer to work with domain-oriented method calls (`findByCategory`, `findByActiveTrue`) instead of raw SQL/JPQL, and allowing the underlying persistence technology to be swapped with minimal impact on business logic. |
+| **Repository Pattern** | `ProductRepository extends JpaRepository<Product, UUID>` | Abstracts persistence/query logic behind an interface, allowing the service layer to work with domain-oriented method calls (`findByCategory`, `findByActiveTrue`) instead of raw SQL/JPQL, and allowing the underlying persistence technology to be swapped with minimal impact on business logic. |
 | **DTO (Data Transfer Object) Pattern** | `ProductRequestDto`, `ProductResponseDto`, `PriceUpdateRequestDto`, `StockUpdateRequestDto`, `StockReductionRequestDto`, `AvailabilityResponseDto` | Decouples the public REST contract from the internal `Product` entity/persistence model, so the database schema can evolve (e.g., adding internal audit fields) without breaking API consumers, and prevents over-exposure of internal entity state. |
 | **Global Exception Handling (Chain of Responsibility-style centralization via `@RestControllerAdvice`)** | `GlobalExceptionHandler` | Centralizes translation of exceptions into consistent HTTP error responses, removing repetitive try/catch logic from every controller method. |
 | **Builder Pattern** | Lombok `@Builder` on `Product` entity and DTOs | Provides a readable, immutable-friendly way to construct entity/DTO instances with multiple optional fields, particularly useful when constructing response DTOs in the mapper. |
