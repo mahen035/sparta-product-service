@@ -19,14 +19,6 @@ public class ProductMapper {
                 .build();
     }
 
-    public void updateEntity(Product product, ProductRequestDto dto) {
-        product.setProductName(dto.getProductName());
-        product.setDescription(dto.getDescription());
-        product.setCategory(dto.getCategory());
-        product.setPrice(dto.getPrice());
-        product.setStockQuantity(dto.getStockQuantity());
-    }
-
     public ProductResponseDto toResponseDto(Product product) {
         return ProductResponseDto.builder()
                 .id(product.getId())
@@ -39,4 +31,14 @@ public class ProductMapper {
                 .updatedAt(product.getUpdatedAt())
                 .build();
     }
+
+    public void updateEntity(Product product, ProductRequestDto dto) {
+        product.setProductName(dto.getProductName());
+        product.setDescription(dto.getDescription());
+        product.setCategory(dto.getCategory());
+        product.setPrice(dto.getPrice());
+        product.setStockQuantity(dto.getStockQuantity());
+    }
+
+
 }
