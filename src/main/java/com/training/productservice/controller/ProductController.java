@@ -65,23 +65,11 @@ public class  ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable UUID id,
-                                                              @Valid @RequestBody ProductRequestDto dto) {
-        return ResponseEntity.ok(productService.updateProduct(id, dto));
-    }
-
-    @PatchMapping("/{id}/price")
+       @PatchMapping("/{id}/price")
     public ResponseEntity<ProductResponseDto> updatePrice(@PathVariable UUID id,
                                                             @Valid @RequestBody PriceUpdateRequestDto dto) {
         return ResponseEntity.ok(productService.updatePrice(id, dto));
     }
-
-//    @PatchMapping("/{id}/stock")
-//    public ResponseEntity<ProductResponseDto> updateStock(@PathVariable UUID id,
-//                                                            @Valid @RequestBody StockUpdateRequestDto dto) {
-//        return ResponseEntity.ok(productService.updateStock(id, dto));
-//    }
 
     @GetMapping("/{id}/availability")
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(@PathVariable @NotBlank UUID id,
