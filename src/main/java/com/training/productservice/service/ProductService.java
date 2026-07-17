@@ -20,6 +20,8 @@ public interface ProductService {
 
     ProductResponseDto updatePrice(UUID id, PriceUpdateRequestDto dto);
 
+    //ProductResponseDto updateStock(UUID id, StockUpdateRequestDto dto);
+
     AvailabilityResponseDto checkAvailability(UUID id, Integer quantity);
 
     ProductResponseDto reduceStock(UUID id, Integer quantity, String orderReference);
