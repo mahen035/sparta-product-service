@@ -90,13 +90,19 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponseDto reduceStock(UUID id, Integer quantity, String orderReference) {
-        Product product = findProductOrThrow(id);
+        Product product = productRepository.findById(id).orElseThrow(()->
+        {
+            log.warn("The Product with ID: "+id+" does not exists, kindly enter valid ID.");
+            throw new ProductNotFoundException("The Product with ID: "+id+" does not exists, kindly enter valid ID.");
+        });
+        // check for available quantity is sufficient for the order.
         if (product.getStockQuantity() < quantity) {
             log.warn("Insufficient stock for productId={} orderReference={} requested={} available={}",
                     id, orderReference, quantity, product.getStockQuantity());
             throw new InsufficientStockException(
                     "Insufficient stock for product " + id + ": requested " + quantity + ", available " + product.getStockQuantity());
         }
+        // updating inventory with the remaining stock.
         product.setStockQuantity(product.getStockQuantity() - quantity);
         Product saved = productRepository.save(product);
         log.info("Stock reduced for productId={} by quantity={} due to orderReference={}", id, quantity, orderReference);

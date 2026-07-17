@@ -17,7 +17,10 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.training.productservice.dto.ProductResponseDto;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,5 +118,77 @@ class ProductServiceImplTest {
 
         assertTrue(ex.getMessage().contains(id.toString()));
         verify(productRepository, times(1)).findById(id);
+    }
+
+    // -------------------------
+    // reduceStock test cases
+    // -------------------------
+
+    // Positive: stock is greater than requested quantity — stock is reduced and response is returned
+    @Test
+    void reduceStock_whenStockSufficient_reducesStockAndReturnsResponse() {
+        UUID id = UUID.randomUUID();
+        Product product = buildProduct(id, 10);
+        Product saved = buildProduct(id, 7);
+        ProductResponseDto expectedDto = new ProductResponseDto();
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        when(productRepository.save(product)).thenReturn(saved);
+        when(productMapper.toResponseDto(saved)).thenReturn(expectedDto);
+
+        ProductResponseDto result = productServiceImpl.reduceStock(id, 3, "ORD-001");
+
+        assertNotNull(result);
+        assertEquals(expectedDto, result);
+        assertEquals(7, product.getStockQuantity());
+        verify(productRepository, times(1)).findById(id);
+        verify(productRepository, times(1)).save(product);
+        verify(productMapper, times(1)).toResponseDto(saved);
+    }
+
+    // Positive: stock exactly equals requested quantity — boundary case, stock becomes 0
+    @Test
+    void reduceStock_whenStockEqualsRequestedQuantity_reducesStockToZero() {
+        UUID id = UUID.randomUUID();
+        Product product = buildProduct(id, 5);
+        Product saved = buildProduct(id, 0);
+        ProductResponseDto expectedDto = new ProductResponseDto();
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+        when(productRepository.save(product)).thenReturn(saved);
+        when(productMapper.toResponseDto(saved)).thenReturn(expectedDto);
+
+        ProductResponseDto result = productServiceImpl.reduceStock(id, 5, "ORD-002");
+
+        assertNotNull(result);
+        assertEquals(0, product.getStockQuantity());
+        verify(productRepository, times(1)).save(product);
+    }
+
+    // Negative: product ID does not exist in repository
+    @Test
+    void reduceStock_whenProductNotFound_throwsProductNotFoundException() {
+        UUID id = UUID.randomUUID();
+        when(productRepository.findById(id)).thenReturn(Optional.empty());
+
+        ProductNotFoundException ex = assertThrows(ProductNotFoundException.class,
+                () -> productServiceImpl.reduceStock(id, 3, "ORD-003"));
+
+        assertTrue(ex.getMessage().contains(id.toString()));
+        verify(productRepository, times(1)).findById(id);
+        verify(productRepository, never()).save(any());
+    }
+
+    // Negative: requested quantity exceeds available stock
+    @Test
+    void reduceStock_whenRequestedQuantityExceedsStock_throwsInsufficientStockException() {
+        UUID id = UUID.randomUUID();
+        Product product = buildProduct(id, 2);
+        when(productRepository.findById(id)).thenReturn(Optional.of(product));
+
+        InsufficientStockException ex = assertThrows(InsufficientStockException.class,
+                () -> productServiceImpl.reduceStock(id, 10, "ORD-004"));
+
+        assertTrue(ex.getMessage().contains(id.toString()));
+        verify(productRepository, times(1)).findById(id);
+        verify(productRepository, never()).save(any());
     }
 }
