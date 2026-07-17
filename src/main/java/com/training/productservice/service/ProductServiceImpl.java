@@ -127,6 +127,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public ProductResponseDto adjustStock(UUID id, StockUpdateRequestDto stockUpdateRequestDto) {
         Product product = findProductOrThrow(id);
         int current = product.getStockQuantity();
