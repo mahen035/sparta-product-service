@@ -49,13 +49,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.updatePrice(id, dto));
     }
 
-    @GetMapping("/{id}/availability")
+    @GetMapping("/availability/{id}")
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(@PathVariable @NotBlank UUID id,
                                                                      @RequestParam @NotNull @Min(1) Integer quantity) {
         return ResponseEntity.ok(productService.checkAvailability(id, quantity));
     }
 
-    @PatchMapping("/{id}/reduce-stock")
+    @PatchMapping("/reduce/stock/{id}")
     public ResponseEntity<ProductResponseDto> reduceStock(@PathVariable UUID id,
                                                           @Valid @RequestBody StockReductionRequestDto dto) {
         return ResponseEntity.ok(productService.reduceStock(id, dto.getQuantity(), dto.getOrderReference()));
