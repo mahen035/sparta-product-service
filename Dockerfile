@@ -1,3 +1,4 @@
+# Product Service container image
 FROM eclipse-temurin:19-jdk
 
 WORKDIR /app
