@@ -111,11 +111,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public String deleteProduct(UUID id) {
-        Product product = findProductOrThrow(id);
-        if (orderServiceClient.hasOpenOrders(id)) {
+    public String deleteProduct(UUID productId) {
+        Product product = findProductOrThrow(productId);
+        if (orderServiceClient.hasOpenOrders(productId)) {
             throw new ProductHasOpenOrdersException(
-                    "Product " + id + " cannot be deleted: it is referenced by one or more open orders");
+                    "Product " + productId + " cannot be deleted: it is referenced by one or more open orders");
         }
         product.setStatus(ProductStatus.DISCONTINUED);
         productRepository.save(product);
