@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.UUID;
 
 
-@FeignClient(name = "order-service",url="${order-service.base-url}")
-public interface OrderServiceClient {
+@FeignClient(name = "order-service")
+public interface OrderServiceClient{
 
     @GetMapping("/api/v1/orders/product/{productId}/has-open")
     boolean hasOpenOrders(@PathVariable("productId") UUID productId);
