@@ -4,6 +4,7 @@ import com.training.productservice.dto.AvailabilityResponseDto;
 import com.training.productservice.enums.ProductAvailability;
 import com.training.productservice.entity.Product;
 import com.training.productservice.enums.ProductStatus;
+import com.training.productservice.event.ProductEventPublisher;
 import com.training.productservice.exception.InsufficientStockException;
 import com.training.productservice.exception.ProductNotFoundException;
 import com.training.productservice.repository.ProductRepository;
@@ -32,6 +33,9 @@ class ProductServiceImplTest {
 
     @Mock
     private ProductMapper productMapper;
+
+    @Mock
+    private ProductEventPublisher productEventPublisher;
 
     @InjectMocks
     private ProductServiceImpl productServiceImpl;

@@ -5,6 +5,8 @@ import com.training.productservice.dto.*;
 import com.training.productservice.entity.Product;
 import com.training.productservice.enums.ProductAvailability;
 import com.training.productservice.enums.ProductStatus;
+import com.training.productservice.event.ProductEventPublisher;
+import com.training.productservice.event.ProductEventType;
 import com.training.productservice.exception.DuplicateProductException;
 import com.training.productservice.exception.InsufficientStockException;
 import com.training.productservice.exception.ProductHasOpenOrdersException;
@@ -27,6 +29,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final OrderServiceClient orderServiceClient;
+    private final ProductEventPublisher productEventPublisher;
 
     @Override
     @Transactional
@@ -37,6 +40,7 @@ public class ProductServiceImpl implements ProductService {
         }
         Product saved = productRepository.save(productMapper.toEntity(dto));
         log.info("Product created with id={}", saved.getId());
+        productEventPublisher.publish(ProductEventType.PRODUCT_CREATED, saved);
         return productMapper.toResponseDto(saved);
     }
 
@@ -60,7 +64,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDto updatePrice(UUID id, PriceUpdateRequestDto dto) {
         Product product = findProductOrThrow(id);
         product.setPrice(dto.getPrice());
-        return productMapper.toResponseDto(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        productEventPublisher.publish(ProductEventType.PRODUCT_PRICE_CHANGED, saved);
+        return productMapper.toResponseDto(saved);
     }
 
     @Override
@@ -106,6 +112,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStockQuantity(product.getStockQuantity() - quantity);
         Product saved = productRepository.save(product);
         log.info("Stock reduced for productId={} by quantity={} due to orderReference={}", id, quantity, orderReference);
+        productEventPublisher.publish(ProductEventType.PRODUCT_STOCK_CHANGED, saved);
         return productMapper.toResponseDto(saved);
     }
 
@@ -118,7 +125,8 @@ public class ProductServiceImpl implements ProductService {
                     "Product " + productId + " cannot be deleted: it is referenced by one or more open orders");
         }
         product.setStatus(ProductStatus.DISCONTINUED);
-        productRepository.save(product);
+        Product saved = productRepository.save(product);
+        productEventPublisher.publish(ProductEventType.PRODUCT_DELETED, saved);
 
         return product.getProductName() + " was deleted";
     }
@@ -135,7 +143,9 @@ public class ProductServiceImpl implements ProductService {
 
         productMapper.updateEntity(savedProduct, product);
 
-        return productMapper.toResponseDto(productRepository.save(savedProduct));
+        Product saved = productRepository.save(savedProduct);
+        productEventPublisher.publish(ProductEventType.PRODUCT_UPDATED, saved);
+        return productMapper.toResponseDto(saved);
     }
 
     @Override
@@ -153,6 +163,8 @@ public class ProductServiceImpl implements ProductService {
                     "Cannot decrease stock of product " + id + " by " + stockUpdateRequestDto.getQuantity() + "; current stock is " + current);
         }
         product.setStockQuantity(updated);
-        return productMapper.toResponseDto(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        productEventPublisher.publish(ProductEventType.PRODUCT_STOCK_CHANGED, saved);
+        return productMapper.toResponseDto(saved);
     }
 }
